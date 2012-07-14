@@ -268,7 +268,7 @@ martin@acergpu:/dev/shm$ hexdump -C 30655424-dat |head
 *
 01f45040  1f 8b 08 00 39 42 ff 4c  00 03 ec 7d 0b 7c 55 d5  |....9B.L...}.|U.|
 01f45050  95 f7 be 8f 3c 08 57 b8  09 a0 11 d1 5c 10 67 32  |....<.W.....\.g2|
-
+  - it only contains a tar with some games
 martin@acergpu:/dev/shm$ hexdump -C 30655424-dat ^C
 martin@acergpu:/dev/shm$ dd if=s.raw bs=1 skip=32788544 > 32788544.gz
 file 324371392+0 records in
@@ -277,6 +277,12 @@ file 324371392+0 records in
 martin@acergpu:/dev/shm$ file 32788544.gz 
 32788544.gz: gzip compressed data, from Unix, last modified: Wed Dec  8 09:30:49 2010
 martin@acergpu:/dev/shm$ zcat 32788544.gz > 32788544-dat
+martin@acergpu:/dev/shm$ file 32788544-dat 
+32788544-dat: POSIX tar archive (GNU)
+martin@acergpu:/dev/shm$ tar xvf 32788544-dat 
+games/
+games/sudoku.app
+tar: Unexpected EOF in archive
 
 
 
@@ -292,6 +298,17 @@ martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk|head
 00000020  eb f2 31 c0 cd 16 cd 19  ea f0 ff 00 f0 44 69 72  |..1..........Dir|
 00000030  65 63 74 20 62 6f 6f 74  69 6e 67 20 66 72 6f 6d  |ect booting from|
 
+ - in jffs2.h i see this:
+#define JFFS2_OLD_MAGIC_BITMASK 0x1984
+#define JFFS2_MAGIC_BITMASK 0x1985
+#define KSAMTIB_CIGAM_2SFFJ 0x8519 /* For detecting wrong-endian fs */
+#define JFFS2_EMPTY_BITMASK 0xffff
+#define JFFS2_DIRTY_BITMASK 0x0000
+
+/* Summary node MAGIC marker */
+#define JFFS2_SUM_MAGIC 0x02851885
+
 
 * maybe i can find the serial port with the oscilloscope
+
 
