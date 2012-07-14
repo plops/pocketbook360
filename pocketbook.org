@@ -1,0 +1,297 @@
+
+* df
+rootfs 8192 6156 2036 /
+tmpfs 31684 /dev/shm
+/dev/mtdblock5 32768 32768 0 /ebrmain
+/dev/mtdblock6 477256 233632 243624 /mnt/ext1
+/dev/mmcblk0p1 1932992 1002240 930752 /mnt/ext2
+
+* the script ins_usb_mod.sh exports the internal 500MB flash over usb
+insmod /lib/modules/usb/Usbpdc.ko
+insmod /lib/modules/usb/phMscd.ko file=/dev/mtdblock6
+
+* /etc/devicename
+Pocket101
+
+g-sensor
+insmod /lib/modules/mma7455.ko
+
+
+* compress folders on the device
+martin@acergpu:/dev/shm$ cat /mnt/c.sh
+#!/bin/sh
+tar cvf /mnt/ext2/b.tar /bin /dev /ebrmain /etc /lib /linuxrc /sbin /tmp /var /usr  
+dmesg > /mnt/ext2/dmesg
+cat /proc/cpuinfo > /mnt/ext2/cpuinfo
+tar cvf /mnt/ext2/proc.tar /proc
+tar cvf /mnt/ext2/sys.tar /sys
+
+martin@acergpu:/dev/shm$ mkdir /dev/shm/pb
+martin@acergpu:/dev/shm$ cp /mnt/{dmesg,proc.tar,sys.tar,cpuinfo,b.tar} /dev/shm/pb
+
+i copied all into ~/pb-contents
+
+** cpuinfo
+Processor       : ARM920T rev 0 (v4l)
+BogoMIPS        : 201.93
+Features        : swp half thumb 
+CPU implementer : 0x41
+CPU architecture: 4T                  <--- that can probably not run clozure common lisp
+CPU variant     : 0x1
+CPU part        : 0x920
+CPU revision    : 0
+Cache type      : write-back
+Cache clean     : cp15 c7 ops
+Cache lockdown  : format A
+Cache format    : Harvard
+I size          : 16384
+I assoc         : 64
+I line length   : 32
+I sets          : 8
+D size          : 16384
+D assoc         : 64
+D line length   : 32
+D sets          : 8
+
+Hardware        : SBZ2440
+Revision        : 0000
+Serial          : 0000000000000000
+
+** root
+ - i'm the user reader and su doesn't work
+
+** lsmod
+mma7455          gravitation sensor, get-axis, mode switch
+hal_s3c2440      Isp1582, charging, monitor irq, usb controller
+einkfb           sending commands to display
+pvi_io           suspend and keyboard, electrophoretic display driver
+
+** pcb schematic
+ - NetronixEB600_Schematic (1).zip
+ - it doesn't look exactly identical but tp613 is on usb
+
+** pvi (prime view international)
+- drives source and gate drivers for 800x600 display
+- composes image with external lookup table from flash
+- 10MBytes/s to host 8bit async parallel interface with handshake 
+- full screen commands
+  - load picture 0xa0 stores data in external ram, 60kB for binary,
+    120kB for 2bit grayscale
+  - stop loading 0xa1  recommended to always send this after data
+  - display pic 0xa2
+  - erase display 0xa3
+  - controller remembers old image because the display has to be
+    driven with the difference
+  - init display 0xa4 makes display white and then loads data into
+    display (if display was in an undefined state)
+  - before powering down it is mendatory to make the display white
+  - there is a special command that makes the display white even if
+    content isn't known
+  - restore pic  0xa5 to swap between two images for menus...
+- partial drawing
+  - load partial 0xb0 
+  - display partial picture 0xb1
+  - ushort coordinates 16-bit, multiple of 4 pixels
+- get-status 0xaa
+- version 0xe0
+- display-size 0xe2 returns 0x22 to indicate 800x600 with 4bits
+  grayscale
+- reset 0xee
+- normal mode 0xf0, sleep mode 0xf1, standby 0xf2
+- set-depth 0xf3
+- orientation, positive, negative, write flash rom, read from flash,
+  write reg, read reg, read temperature
+- autorefresh 0xf9 by default 10min
+- cancel autorefres, set refresh timer 0xfb, manual refresh 0xfc,
+  read-refresh-timer
+- gray vs. b/w
+  - monochrome allows general image flow smoothly from one image into next
+  - grayscale is slower
+  - controller sees, what is necessary from the difference image
+
+* isp1582 
+ - high speed usb periphery controller 480Mbit/s or 12Mbit/s
+ - maintains up to 16 endpoints
+
+** ebrmain/bin/monitor.app
+- handles usb connection events
+
+* openinkpot
+has usbmon module
+
+** its /etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+auto usb0
+iface usb0 inet static
+    address 192.168.111.1
+    netmask 255.255.255.0
+    broadcast 192.168.111.255
+    gateway 192.168.111.2
+
+
+* try to compile the usbnet kernel module on my laptop:
+Multi-purpose USB Networking Framework
+
+This driver supports several kinds of network links over USB,               
+with "minidrivers" built around a common network driver core                
+that supports deep queues for efficient transfers.  (This gives             
+better performance with small packets and at high speeds).                  
+                                                                            
+The USB host runs "usbnet", and the other end of the link might be:         
+                                                                            
+- Another USB host, when using USB "network" or "data transfer"             
+  cables.  These are often used to network laptops to PCs, like             
+  "Laplink" parallel cables or some motherboards.  These rely               
+  on specialized chips from many suppliers.                                 
+                                                                            
+- An intelligent USB gadget, perhaps embedding a Linux system.              
+  These include PDAs running Linux (iPaq, Yopy, Zaurus, and                 
+  others), and devices that interoperate using the standard                 
+  CDC-Ethernet specification (including many cable modems).                 
+                                                                            
+- Network adapter hardware (like those for 10/100 Ethernet) which           
+  uses this driver framework.                                               
+                                                                            
+The link will appear with a name like "usb0", when the link is              
+a two-node link, or "eth0" for most CDC-Ethernet devices.  Those            
+two-node links are most easily managed with Ethernet Bridging               
+
+
+* i do a firmware update to 15.3
+  - gzip header of my debian's initrd
+00000000  1f 8b 08 00 01 5c 5f 4f  00 03 ac bd 09 7c 13 d5  |.....\_O.....|..|
+00000010  f6 38 9e 34 49 1b a0 65  a2 b4 58 15 b4 d5 a0 ed  |.8.4I..e..X.....|
+  - some arbitrary gzip data has this header:
+00000000  1f 8b 08 08 92 a9 03 4d  00 03 52 65 6c 65 61 73  |.......M..Releas|
+00000010  65 20 6e 6f 74 65 73 20  31 35 5f 33 5f 45 4e 47  |e notes 15_3_ENG|
+00000020  2e 64 6f 63 00 ec 5b 07  5c 54 d7 d2 3f 0b 57 a4  |.doc..[.\T..?.W.|
+  - header of cpio archive
+martin@acergpu:/dev/shm$ hexdump -C init.cpio |head
+00000000  30 37 30 37 30 31 30 30  30 30 30 46 46 35 30 30  |07070100000FF500|
+00000010  30 30 34 31 45 44 30 30  30 30 30 30 30 30 30 30  |0041ED0000000000|
+00000020  30 30 30 30 30 30 30 30  30 30 30 30 30 39 34 46  |000000000000094F|
+00000030  35 46 35 43 30 31 30 30  30 30 30 30 30 30 30 30  |5F5C010000000000|
+00000040  30 30 30 30 30 30 30 30  30 30 30 30 31 30 30 30  |0000000000001000|
+  - header of the SWUP... file
+00000000  50 6f 63 6b 65 74 42 6f  6f 6b 55 70 64 61 74 65  |PocketBookUpdate|
+00000010  50 6f 63 6b 65 74 31 30  31 00 00 00 00 00 00 00  |Pocket101.......|
+00000020  00 00 00 00 44 33 36 30  2e 31 35 2e 33 00 00 00  |....D360.15.3...|
+00000030  b2 7d a2 a5 07 54 b2 7c  1b e9 89 5d 4a 17 4d dd  |.}...T.|...]J.M.|
+00000040  7a 3d 9c 19 18 6b f6 30  15 b0 5f 38 4a c3 bc ab  |z=...k.0.._8J...|
+00000050  b4 c0 e6 58 12 1b 8d c6  64 cc 17 a3 bd d6 dd c7  |...X....d.......|
+00000060  ee a7 9e 1f 9f fb 37 7a  c9 d4 26 33 f6 05 18 62  |......7z..&3...b|
+00000070  3d ad 8e 4d 8f 1e 1b 1e  3f c9 88 8b 1a 26 02 27  |=..M....?....&.'|
+00000080  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000100  6b 00 00 00 00 00 00 00  00 00 00 00 f8 17 0c 00  |k...............|
+00000110  72 00 00 00 00 00 00 00  00 00 0d 00 c0 73 41 00  |r............sA.|
+00000120  65 00 00 00 00 00 00 00  00 00 4f 00 00 44 e7 01  |e.........O..D..|
+00000130  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000400  27 05 19 56 a5 52 79 f9  4c 6d 37 2b 00 0c 17 b8  |'..V.Ry.Lm7+....|
+00000410  30 00 80 00 30 00 80 00  c1 99 8c 2a 05 02 02 00  |0...0......*....|
+00000420  4c 69 6e 75 78 2d 32 2e  36 2e 31 38 2e 32 00 00  |Linux-2.6.18.2..|
+00000430  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000440  00 00 a0 e1 00 00 a0 e1  00 00 a0 e1 00 00 a0 e1  |................|
+*
+00000460  02 00 00 ea 18 28 6f 01  00 00 00 00 b8 17 0c 00  |.....(o.........|
+00000470  01 70 a0 e1 02 80 a0 e1  00 20 0f e1 03 00 12 e3  |.p....... ......|
+  - maybe photorec can extract files or the beginning of compressed data
+    - it finds lots of txt, a shell und few other files, no gzip archive
+
+  - the file contains a gzip block at 14448:
+00003870  1f 8b 08 00 29 37 6d 4c  02 03 ec fd 0d 7c 54 c5  |....)7mL.....|T.|
+00003880  d9 37 8e cf d9 dd 24 4b  88 70 42 5e 0c 10 65 03  |.7....$K.pB^..e.|
+00003890  d1 46 1b f5 04 82 a6 34  ea 22 d1 46 c1 ba 40 54  |.F.....4.".F..@T|
+  - the decompressed data seems to contain bootloader and kernel, here
+    are the first strings:
+
+Error: unrecognized/unsupported processor variant.
+Error: unrecognized/unsupported machine ID (r1 = 0x
+Available machine support:
+ID (hex)        NAME
+Please check your kernel config and/or bootloader.
+initcall_debug
+rdinit=
+init=
+loglevel=
+quiet
+debug
+maxcpus=
+nosmp
+rootdelay=
+rootfstype=
+rootflags=
+root=
+load_ramdisk=
+ramdisk_start=
+prompt_ramdisk=
+lpj=
+reboot=
+nohlt
+fpe=
+noinitrd root=/dev/mtdblock2 rw rootfstype=jffs2 init=/linuxrc console=ttySAC0
+user_debug=
+apm=
+noalign
+uncached
+  - note the console=ttySAC0, apparently there is a serial console and also the filesystem type is given
+  - and 1649516 (this can't be decompressed)
+00192b60  68 d0 8d e2 f0 8f bd e8  f8 48 06 00 1f 8b 08 00  |h........H......|
+00192b70  34 2e 00 00 54 61 05 00  30 29 00 00 36 61 05 00  |4...Ta..0)..6a..|
+00192b80  a4 29 00 00 58 18 00 00  e0 23 00 00 e2 23 00 00  |.)..X....#...#..|
+00192b90  17 01 00 00 de 23 00 00  1f 01 00 00 58 21 00 00  |.....#......X!..|
+  - and 30655424
+01d3c3a0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
+*
+01d3c3c0  1f 8b 08 00 33 df 55 4b  00 03 ec 9d 0b 78 13 55  |....3.UK.....x.U|
+01d3c3d0  da c7 27 b4 29 6d 6d cb  29 97 72 b1 40 85 72 11  |..'.)mm.).r.@.r.|
+01d3c3e0  b9 24 69 9a 22 c2 42 5b  28 08 2d 14 5b 17 44 b0  |.$i.".B[(.-.[.D.|
+
+- this is some data
+martin@acergpu:/dev/shm$ hexdump -C 30655424-dat |head
+00000000  41 66 72 69 63 61 2f 00  00 00 00 00 00 00 00 00  |Africa/.........|
+00000010  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000060  00 00 00 00 30 30 30 30  37 35 35 00 30 30 30 30  |....0000755.0000|
+00000070  30 30 30 00 30 30 30 30  30 30 30 00 30 30 30 30  |000.0000000.0000|
+00000080  30 30 30 30 30 30 30 00  31 31 33 32 32 33 31 34  |0000000.11322314|
+00000090  36 35 34 00 30 31 30 37  34 32 00 20 35 00 00 00  |654.010742. 5...|
+000000a0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000100  00 75 73 74 61 72 20 20  00 72 6f 6f 74 00 00 00  |.ustar  .root...|
+
+  - and 32788544
+01f45020  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
+*
+01f45040  1f 8b 08 00 39 42 ff 4c  00 03 ec 7d 0b 7c 55 d5  |....9B.L...}.|U.|
+01f45050  95 f7 be 8f 3c 08 57 b8  09 a0 11 d1 5c 10 67 32  |....<.W.....\.g2|
+
+martin@acergpu:/dev/shm$ hexdump -C 30655424-dat ^C
+martin@acergpu:/dev/shm$ dd if=s.raw bs=1 skip=32788544 > 32788544.gz
+file 324371392+0 records in
+4371392+0 records out
+4371392 bytes (4.4 MB) copied, 2.48768 s, 1.8 MB/s
+martin@acergpu:/dev/shm$ file 32788544.gz 
+32788544.gz: gzip compressed data, from Unix, last modified: Wed Dec  8 09:30:49 2010
+martin@acergpu:/dev/shm$ zcat 32788544.gz > 32788544-dat
+
+
+
+ - this is how my vmlinuz files look like on i386
+martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk.old |head
+00000000  ea 05 00 c0 07 8c c8 8e  d8 8e c0 8e d0 31 e4 fb  |.............1..|
+00000010  fc be 2d 00 ac 20 c0 74  09 b4 0e bb 07 00 cd 10  |..-.. .t........|
+00000020  eb f2 31 c0 cd 16 cd 19  ea f0 ff 00 f0 44 69 72  |..1..........Dir|
+00000030  65 63 74 20 62 6f 6f 74  69 6e 67 20 66 72 6f 6d  |ect booting from|
+martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk|head
+00000000  ea 05 00 c0 07 8c c8 8e  d8 8e c0 8e d0 31 e4 fb  |.............1..|
+00000010  fc be 2d 00 ac 20 c0 74  09 b4 0e bb 07 00 cd 10  |..-.. .t........|
+00000020  eb f2 31 c0 cd 16 cd 19  ea f0 ff 00 f0 44 69 72  |..1..........Dir|
+00000030  65 63 74 20 62 6f 6f 74  69 6e 67 20 66 72 6f 6d  |ect booting from|
+
+
+* maybe i can find the serial port with the oscilloscope
+
