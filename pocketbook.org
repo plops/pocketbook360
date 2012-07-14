@@ -310,5 +310,11 @@ martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk|head
 
 
 * maybe i can find the serial port with the oscilloscope
+** port with 4 connectors in battery case
+  - i think the separated pin (with an extra rectangle around) should be ground
+  - the pin next to ground has bursts with values from 0..-3V
+  - serial 115200 8N1, lsb first, inverted 
+  - first string:
 
-
+martin@acergpu:/dev/shm/Logic 1.1.15 (64-bit)$ cat bla.txt |cut -d "," -f 2|sed ':a;N;$!ba;s/\n//g'
+Value'0'\n\rU-Boot' '1.1.4' '(Aug' '24' '2009' '-' '22:37:50)\n\rU-Boot' 'code:' '33F80000' '->' '00000000' '' 'BSS:' '->' '33FA0AAC\n\rSDRAM:' '64' 'MB\n\rNAND' 'device' 'ID:' '[0xdcec]' '[Samsung' 'K9F4G08U0A]\n\rNAND' 'Total' 'Blocks=4096' '<5>\n\rnand_read_ecc:' 'Attempt' 'read' 'beyond' 'end' 'of' 'device' '30000' '10000' '0\n\r***' 'Warning' '-' 'bad' 'CRC' 'or' 'NAND' 'using' 'default' 'environment\n\r
