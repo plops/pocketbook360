@@ -523,11 +523,11 @@ wake disabled for irq 46
  - apparently, the arm uart pins are not 5V tolerant: 
    - http://www.friendlyarm.net/forum/topic/600
    - according to S3C2440.pdf, only "t10" type inputs are 5V tolerant.
-RXD0 is "t8" type, which means UART is not 5v tolerant.  You should
-not exceed 4.8V (Absolute maximum rating page)
+     RXD0 is "t8" type, which means UART is not 5v tolerant.  You
+     should not exceed 4.8V (Absolute maximum rating page)
    - In that case, 2x D1n4148 in series or a large resistor should do
-the job. I forgot to mention that my setup does have a resistor in
-series.
+     the job. I forgot to mention that my setup does have a resistor
+     in series.
    - I guess D1n4148 is a diode
    - in the EB600 schematic, they have a long connector with three
      versions of cts,txd,rts,rxd (but only txd2,rxd2: no flow control
@@ -776,7 +776,7 @@ struct FWPart
 : Enter 'help' for a list of built-in commands.
 : 
 : # 
-   - busybox in 153 implemnts the following functions
+   - busybox in 153 implements the following functions
 :         [, [[, ash, awk, basename, bunzip2, bzcat, cat, chgrp, chmod, chown,
 :         chroot, cksum, clear, cp, cut, date, dd, df, dirname, dmesg, du,
 :         echo, egrep, env, expand, expr, false, fgrep, fold, free, fuser,
