@@ -160,6 +160,8 @@ two-node links are most easily managed with Ethernet Bridging
 
 
 * i do a firmware update to 15.3
+  - the new firmware has some option to delete the ADE authorization
+    for pdf documents -- i don't think i care about that
   - gzip header of my debian's initrd
 00000000  1f 8b 08 00 01 5c 5f 4f  00 03 ac bd 09 7c 13 d5  |.....\_O.....|..|
 00000010  f6 38 9e 34 49 1b a0 65  a2 b4 58 15 b4 d5 a0 ed  |.8.4I..e..X.....|
@@ -525,6 +527,7 @@ series.
   - i now connect the gnd from pl2303 (0v pl) to arm's rxd (expects -3v arm)
   - the arm's gnd (0v arm) to txd on pl2303 (4v pl2303)
   - logic analyzer gnd on arm txd (-3v arm) and its ground to pl2303 txd
+  - maybe i have to disconnect the MAX in order to send data into the PL2303
 
   - apparently, even if i can send characters to the console, i will
     not be able to log in without root password
@@ -544,6 +547,16 @@ martin@acergpu:~/pb-contents/bla$ perl pbfwsplit.pl
     - here is documentation on the bin file:
 https://github.com/Vanuan/pocketbook_free_swupdate/wiki/File-structure
 
+// from the perl program pbfwsplit.pl and c++ program
+
+0x40=> "elf.img",
+0x57=> "waveform.bin",
+0x61=> "a.img",
+APP_IMG = 0x65,
+0x6B=> "kernel.img", 
+ROOTFS_IMG = 0x72,
+0x73=> "swupdate.tar.gz",
+
 struct FWPart
 {
   uint32_t type;
@@ -554,15 +567,99 @@ struct FWPart
 
 struct PocketBookUpdateHeader
 {
-  char magic[0x10];
-  char model[0x20];
-  char unknownBuffer1[0x50];
-  char padding1[0x40];
-  uint32_t unknownUInt32;
+  char magic[0x10];    // 0x00 PocketBookUpdate
+  char model[0x20];    // 0x10 .. 0x30-1 Pocket101 followed by 11 zero bytes and D360.15.3
+  char unknownBuffer1[0x50]; // 0x30..0x70-1  b27d **** **** b27c ** ... 
+  char padding1[0x40]; // 0x80 .. 0x100-1 is all zero in my file
+  uint32_t unknownUInt32
   char padding2[0x3C];
-  FWPart fwParts[0x30];
+  FWPart fwParts[0x30]; // 0x100 .. 0x130-1
 };
+                                                                      type reserved     offset        size
+00000100: 6b00 0000 0000 0000 0000 0000 f817 0c00  k............... kernel  0        0            0x000c 17f8
+00000110: 7200 0000 0000 0000 0000 0d00 c073 4100  r............sA. rootfs  0        0x000d 0000  0x0041 73c0
+00000120: 6500 0000 0000 0000 0000 4f00 0044 e701  e.........O..D.. appimg  0        0x004f 0000  0x10e7 4400 
 
+  - the offset must be increased by 0x400 to accommodate header
+
+  - check how the c program extracts the file
+martin@acergpu:~/pb-contents/pocketbook_free_swupdate$ ./parseUpdate SWUPDATE.BIN  o
+Header part: 
+         0       0x10           Magic:                  PocketBookUpdate
+      0x10       0x30           Model:                  Pocket101D360.15.3
+      0x30       0x80           Unknown buffer 1:
+      0x80       0xc0           Padding1:
+      0xc0       0xc4           UnknownUInt32:         0
+      0xc4      0x100           Padding2:
+     0x100      0x400           Partition table:
+Firmware partitions: 
+  0x4f0400  0x2364800           app.img:
+   0xd0400   0x4e77c0           rootfs.img:
+     0x400    0xc1bf8           unknownImg:
+                ^--- this is offset+size
+
+  - this is what the perl program outputs:
+martin@acergpu:~/pb-contents/split$ perl pbfwsplit.pl SWUPDATE.BIN 
+        kernel.img0:6B: 00000400 0000001024 -> 000C17F8 0000792568
+        rootfs.img0:72: 000D0400 0000852992 -> 004173C0 0004289472
+           app.img0:65: 004F0400 0005178368 -> 01E74400 0031933440
+                                
+ 
+  - apparently, i can't just boot these things in qemu
+    martin@acergpu:~/pb-contents/split$ qemu-system-arm -kernel kernel.img -mtdblock rootfs.img 
+    VNC server running on `127.0.0.1:5900'
+    qemu: fatal: Trying to execute code outside RAM or ROM at 0x30008000
+  - the images are YAFFS (i think) and not jffs2
   - someone posted a possible password
     0df6126571f873829f9ab23d129d786e in the u-boot, and here and
     there. This amount corresponds to the md5 password allenchen
+  
+  - qemu works in chroot env 
+
+
+
+martin@acergpu:~/pb-contents/153$ sudo chroot b /bin/qemu-arm /bin/sh
+
+
+BusyBox v1.12.2 (2009-01-04 17:45:10 EET) built-in shell (ash)
+Enter 'help' for a list of built-in commands.
+
+# 
+  - busybox in 153 implemnts the following functions
+        [, [[, ash, awk, basename, bunzip2, bzcat, cat, chgrp, chmod, chown,
+        chroot, cksum, clear, cp, cut, date, dd, df, dirname, dmesg, du,
+        echo, egrep, env, expand, expr, false, fgrep, fold, free, fuser,
+        grep, gunzip, gzip, halt, head, hostname, hwclock, id, ifconfig,
+        ifdown, ifup, init, insmod, ipcrm, ipcs, kill, killall, length,
+        linuxrc, ln, ls, lsmod, md5sum, mdev, microcom, mkdir, mkfifo,
+        mknod, modprobe, more, mount, mv, nc, netstat, nice, nohup, nslookup,
+        ping, pivot_root, pkill, poweroff, printf, ps, pwd, reboot, renice,
+        reset, rm, rmdir, rmmod, route, rx, sed, sh, sha1sum, sleep, sort,
+        split, stat, strings, stty, su, sync, sysctl, tail, tar, tee, telnet,
+        test, time, touch, tr, true, tty, umount, uname, uniq, unzip, uptime,
+        usleep, vi, watch, watchdog, wc, wget, which, xargs, yes, zcat
+  - the old firmware contains an identical busybox binary
+martin@acergpu:~/pb-contents/old$ sum b/bin/busybox 
+31225   332
+martin@acergpu:~/pb-contents/old$ sum ../153/b/bin/busybox 
+31225   332
+  - most notably passwd and login are missing
+  - they have su but it is not suid
+  - mdev seems to be a nice tool
+  - if i had a device with network, that would be much better
+  - password hashes quite a lot of code:
+   
+ martin@acergpu:/dev/shm$ wc /dev/shm/busybox-1.12.2/libbb/pw_encrypt{,_md5,_des}.c
+   84   268  1985 /dev/shm/busybox-1.12.2/libbb/pw_encrypt.c
+  648  3307 18668 /dev/shm/busybox-1.12.2/libbb/pw_encrypt_md5.c
+  798  3957 22802 /dev/shm/busybox-1.12.2/libbb/pw_encrypt_des.c
+ 1530  7532 43455 total
+
+     
+  - boot rom: i think the device boots from nand flash
+  
+  - in the About device dialog i found some interesting information:
+Model: PocketBook 101
+Hardware Type: EB-500
+E-ink parameters: A101.81/16
+developed by Western Graphics
