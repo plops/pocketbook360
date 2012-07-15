@@ -309,12 +309,260 @@ martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk|head
 #define JFFS2_SUM_MAGIC 0x02851885
 
 
+* jffs2
+  - i installed the tools for this filesystem, sudo apt-get install mtd-utils
+
 * maybe i can find the serial port with the oscilloscope
 ** port with 4 connectors in battery case
   - i think the separated pin (with an extra rectangle around) should be ground
   - the pin next to ground has bursts with values from 0..-3V
+  - the next thing would probably be input because the last pin is
+    constant at -3.2V (when the device is powered on)
   - serial 115200 8N1, lsb first, inverted 
   - first string:
 
 martin@acergpu:/dev/shm/Logic 1.1.15 (64-bit)$ cat bla.txt |cut -d "," -f 2|sed ':a;N;$!ba;s/\n//g'
 Value'0'\n\rU-Boot' '1.1.4' '(Aug' '24' '2009' '-' '22:37:50)\n\rU-Boot' 'code:' '33F80000' '->' '00000000' '' 'BSS:' '->' '33FA0AAC\n\rSDRAM:' '64' 'MB\n\rNAND' 'device' 'ID:' '[0xdcec]' '[Samsung' 'K9F4G08U0A]\n\rNAND' 'Total' 'Blocks=4096' '<5>\n\rnand_read_ecc:' 'Attempt' 'read' 'beyond' 'end' 'of' 'device' '30000' '10000' '0\n\r***' 'Warning' '-' 'bad' 'CRC' 'or' 'NAND' 'using' 'default' 'environment\n\r
+
+
+  - the data looks a bit strange, with all these quotes. maybe this is a jtag port?
+
+martin@acergpu:/dev/shm/Logic 1.1.15 (64-bit)$ cat bla2.txt |cut -d "," -f 2|sed ':a;N;$!ba;s/\n//g'|tr "\'" '"'|xargs echo -e
+Value2550000000108250319225501t2031000nrU-Boot 1.1.4 (Aug 24 2009 - 22:37:50)nrU-Boot code: 33F80000 -> 00000000  BSS: -> 33FA0AACnrSDRAM: 64 MBnrNAND device ID: [0xdcec] [Samsung K9F4G08U0A]nrNAND Total Blocks=4096 <5>nrnand_read_ecc: Attempt read beyond end of device 30000 10000 0nr*** Warning - bad CRC or NAND using default environmentnrStart Logo 0x260000nrUSB device init ....chip_id:[0x00158230]..done.nrUSB information[ISPs USBD]: EP0: control EP1: in EP3: out
+Hit any key to stop autoboot:  1 888 0 
+From 0x00080000 to 0x00240000
+Target read size = 0x001c0000
+Target read size = 0x000c2000
+Booting image at 31000000
+   Image Name:   Linux-2.6.18.2
+   Image Type:   ARM Linux Kernel Image (uncompressed)
+   Data Size:    792504 Bytes = 773.9 kB
+   Load Address: 30008000
+   Entry Point:  30008000
+   Verifying Checksum ... OK
+OK
+Starting kernel ...
+Uncompressing Linux.................................................... done booting the kernel.
+Linux version 2.6.18.2 (gcc version 3.4.1) #1 Thu Aug 19 16:52:40 EEST 2010
+CPU: ARM920T [41129200] revision 0 (ARMv4T) cr=c0007177
+Machine: SBZ2440
+Memory policy: ECC disabled Data cache writeback
+Emergency data: c019c220=c019c220
+CPU S3C2440A (id 0x32440001)
+S3C244X: core 405.000 MHz memory 135.000 MHz peripheral 67.500 MHz
+S3C24XX Clocks (c) 2004 Simtec Electronics
+CLOCK: Slow mode (1.500 MHz) fast MPLL on UPLL on
+irq: clearing subpending status 00000002
+PID hash table entries: 512 (order: 9 2048 bytes)
+Console: colour dummy device 80x30
+Memory: 64MB = 64MB total
+Memory: 63232KB available (1252K code 276K data 76K init)
+Mount-cache hash table entries: 512
+CPU: Testing write buffer coherency: ok
+S3C2410 Power Management (c) 2004 Simtec Electronics
+wake enabled for irq 16
+S3C2440: Initialising architecture
+SBZ: s3c244x_irq_add() 
+S3C2440: IRQ Support
+S3C2440: Clock Support DVS off
+S3C2410 DMA Driver (c) 2003-2004 Simtec Electronics
+NetWinder Floating Point Emulator V0.97 (double precision)
+squashfs: version 3.4 (2008/08/26) Phillip Lougher
+yaffs Aug 19 2010 16:52:33 Installing. 
+Initializing Cryptographic API
+io scheduler noop registered
+io scheduler deadline registered (default)
+S3C2440 ADC (c) 2004 Simtec Electronics
+adc_PreScale= 32
+S3C2410 Watchdog Timer (c) 2004 Simtec Electronics
+RAMDISK driver initialized: 8 RAM disks of 32768K size 1024 blocksize
+S3C24XX NAND Driver (c) 2004 Simtec Electronics
+s3c2440-nand s3c2440-nand: Tacls=3 22ns Twrph0=7 51ns Twrph1=3 22ns
+writesize:2048 oobsize:64 erasesize:131072
+NAND device: Manufacturer ID: 0xec Chip ID: 0xdc (Samsung NAND 512MiB 33V 8-bit)
+Scanning device for bad blocks
+Bad eraseblock 1926 at 0x0f0c0000
+Bad eraseblock 1927 at 0x0f0e0000
+Bad eraseblock 1932 at 0x0f180000
+Bad eraseblock 1933 at 0x0f1a0000
+Bad eraseblock 2951 at 0x170e0000
+Bad eraseblock 2957 at 0x171a0000
+Bad eraseblock 3975 at 0x1f0e0000
+Bad eraseblock 3981 at 0x1f1a0000
+Creating 7 MTD partitions on NAND 512MiB 33V 8-bit:
+mtd6: found block remapping table (8 items)
+mice: PS/2 mouse device common for all mice
+S3C24XX RTC (c) 20042006 Simtec Electronics
+s3c2410-rtc s3c2410-rtc: rtc core: registered s3c as rtc0
+i2c /dev entries driver
+s3c2440-i2c s3c2440-i2c: i2c-0: S3C I2C adapter
+s3cmci_2440_probe()
+s3c2410-sdi s3c2410-sdi: initialisation done.
+s3c2410-rtc s3c2410-rtc: hctosys: invalid date/time
+yaffs: dev is 32505860 name is mtdblock4
+yaffs: passed flags 
+yaffs: Attempting MTD mount on 31.4 mtdblock4
+yaffs: auto selecting yaffs2
+VFS: Mounted root (yaffs filesystem).
+Freeing init memory: 76K
+init started: BusyBox v1.12.2 (2009-01-04 17:45:10 EET)
+starting pid 222 tty : /etc/init.d/rcS
+mmc0: error requesting CID: -110
+mmcblk0: mmc0:0007 SD02G 1933312KiB 
+ mmcblk0: p1
+****** init pvi_io
+Board name:             EB-500
+Hardware configuration: 00000000 10141012
+Platform:               EBR-500
+Controller:             PVI6001
+Display:                600x800 5
+Keyboard:               pocket-360
+Touchpanel:             none
+USB:                    ISP1582
+Audio:                  none
+G-sensor:               MMA7455/1
+Bluetooth:              none
+WiFi:                   none
+Display orientation:    top-down
+Touchpanel orientation: default
+
+Virtual e-ink frame buffer device
+hal_s3c2440 isp1582 module init
+phHal_Isp1582_Probe
+halDev->io_addr=0xc5400000
+halDev->irqRes->start=62
+halDev->irqRes_monitor->start=18
+chip_id:0x158230
+isp1582 was register sucessful  (ret:0)
+init_mma7455() - EB500 
+yaffs: dev is 32505861 name is mtdblock5
+yaffs: passed flags no-checkpoint
+yaffs: Attempting MTD mount on 31.5 mtdblock5
+current time: 37/25/265 14:44:21
+error: cannot set time
+Atached mp shm: id 0 addr 4015f000
+::: flash arrived
+::: sdcard arrived
+mount: mounting /dev/mtdblock6p1 on /mnt/ext1 failed: No such file or directory
+FAT: utf8 is not a recommended IO charset for FAT filesystems filesystem will be case sensitive!
+--- mounted flash (disc)
+FAT: utf8 is not a recommended IO charset for FAT filesystems filesystem will be case sensitive!
+--- mounted sdcard (part)
+--- started bookshelf (pid 279)
+creating default directories... ok
+Atached mp shm: id 0 addr 402ca000 size 16720
+Atached fb shm: id 8001 addr 402d3000 size 489616
+/mnt/ext1/.adobe-digital-editions/devicesalt: Operation not permitted
+Copying new files...
+/mnt/ext2/.adobe-digital-editions/devicesalt: Operation not permitted
+-E<4>Unbalanced IRQ 46 wake disable
+BUG: wa
+ing at ke
+el/irq/manage.c:167/set_irq_wake()
+wake disabled for irq 46
+22:00:05 S
+-M-7-6-5-4-3PlaS-2-1+1+2+3+4+Ms3c2410-wdt: * watchdog enabled
+mmc0: error requesting CID: -110
++ERestarting tasks... done
+22:00:11 W
+-E<4>Unbalanced IRQ 46 wake disable
+BUG: wa
+ing at ke
+el/irq/manage.c:167/set_irq_wake()
+wake disabled for irq 46
+22:00:14 S
+-M-7-6-5-4-3PlaS-2-1
+
+* serial port
+  - i pried open a usb-to-serial converter
+  - Bus 001 Device 004: ID 067b:2303 Prolific Technology, Inc. PL2303 Serial Port 
+  - contains a MAXIM C78091 9821 and a 12MHz quartz
+
+  - the pl2303 might not be supported much longer:
+
+ Due to EOL (End-of-Life) policy, please note that PL-2303HX (Chip Rev
+A) and PL-2303X (Chip Rev A) will not have driver support for the
+coming Windows 8 operating system as it is not a supported OS
+mentioned in the chip datasheet. So it is advisable to switch to the
+new PL2303TA chip which will include support for Windows 8.
+
+Please kindly inform your last order by the end of
+September, 2012. Prolific already started supplying PL2303TA since the
+beginning of December, 2011.
+  
+ - I connected 7 (gnd) and 1 (tx), the oscilloscope shows constant +5V
+ 
+ - I saw packets, when i turned off hardware flow control in
+   minicom. however, that was only for a short time, while i was in
+   the options menu. entering characters in the big window doesn't
+   produce serial output on tx. 
+   - this was probably because the oscilloscope is too slow for 115200
+     and doesn't trigger
+   - with 9600 baud i see characters
+
+ - apparently, the arm uart pins are not 5V tolerant: 
+   - http://www.friendlyarm.net/forum/topic/600
+   - according to S3C2440.pdf, only "t10" type inputs are 5V tolerant.
+RXD0 is "t8" type, which means UART is not 5v tolerant.  You should
+not exceed 4.8V (Absolute maximum rating page)
+   - In that case, 2x D1n4148 in series or a large resistor should do
+the job. I forgot to mention that my setup does have a resistor in
+series.
+   - I guess D1n4148 is a diode
+   - in the EB600 schematic, they have a long connector with three
+     versions of cts,txd,rts,rxd (but only txd2,rxd2: no flow control
+     on third uart as described in the arm datasheet)
+   - J15 rxd2, K14 rxd0, K17 rxd1 all of io-type t8 (on page 1-14 in
+     s3c-2440 manual)
+
+ - I obtained datasheets on SD cards from
+   https://www.sdcard.org/downloads/pls/simplified_specs/Part_1_Physical_Layer_Simplified_Specification_Ver_3.01_Final_100518.pdf
+
+
+  - I soldered an smd resistor (i think 330 ohm) in series to txd and
+    now i measure a 3.76V maximum voltage, this should be safe
+  - it didn't work, probably because the signal needs to be inverted
+  - i now connect the gnd from pl2303 (0v pl) to arm's rxd (expects -3v arm)
+  - the arm's gnd (0v arm) to txd on pl2303 (4v pl2303)
+  - logic analyzer gnd on arm txd (-3v arm) and its ground to pl2303 txd
+
+  - apparently, even if i can send characters to the console, i will
+    not be able to log in without root password
+    http://www.the-ebook.org/forum/viewtopic.php?t=18625&postdays=0&postorder=asc&start=20&sid=60fbf00524f95e2a3ce2df2e24bf615d
+ 
+  - someone found an exploit in netagent (only available in newer devices)x to become root:
+    http://www.mobileread.com/forums/showthread.php?t=130710
+
+  - in my system, only AdobeViewer.app is setuid but only as sreader and not root
+  - there is a perl script to seperate the firmware http://www.the-ebook.org/forum/viewtopic.php?t=19171&postdays=0&postorder=asc&start=80
+    - the script reads offsets from the header and then dumps some files:
+   
+martin@acergpu:~/pb-contents/bla$ perl pbfwsplit.pl 
+         kernel.img:6B: 00000400 0000001024 -> 000C17F8 0000792568
+         rootfs.img:72: 000D0400 0000852992 -> 004173C0 0004289472
+            app.img:65: 004F0400 0005178368 -> 01E74400 0031933440
+    - here is documentation on the bin file:
+https://github.com/Vanuan/pocketbook_free_swupdate/wiki/File-structure
+
+struct FWPart
+{
+  uint32_t type;
+  uint32_t reserved;
+  uint32_t offset;
+  uint32_t size;
+};
+
+struct PocketBookUpdateHeader
+{
+  char magic[0x10];
+  char model[0x20];
+  char unknownBuffer1[0x50];
+  char padding1[0x40];
+  uint32_t unknownUInt32;
+  char padding2[0x3C];
+  FWPart fwParts[0x30];
+};
+
+  - someone posted a possible password
+    0df6126571f873829f9ab23d129d786e in the u-boot, and here and
+    there. This amount corresponds to the md5 password allenchen
