@@ -160,7 +160,13 @@ two-node links are most easily managed with Ethernet Bridging
 
 
 * i do a firmware update to 15.3
-  - the new firmware has some option to delete the ADE authorization
+  - the new firmware has some option to delete the ADE authorization,
+    this is probably related to this output in dmesg:
+
+/mnt/ext1/.adobe-digital-editions/devicesalt: Operation not permitted
+Copying new files...
+/mnt/ext2/.adobe-digital-editions/devicesalt: Operation not permitted
+
     for pdf documents -- i don't think i care about that
   - gzip header of my debian's initrd
 00000000  1f 8b 08 00 01 5c 5f 4f  00 03 ac bd 09 7c 13 d5  |.....\_O.....|..|
@@ -609,11 +615,81 @@ martin@acergpu:~/pb-contents/split$ perl pbfwsplit.pl SWUPDATE.BIN
     martin@acergpu:~/pb-contents/split$ qemu-system-arm -kernel kernel.img -mtdblock rootfs.img 
     VNC server running on `127.0.0.1:5900'
     qemu: fatal: Trying to execute code outside RAM or ROM at 0x30008000
-  - the images are YAFFS (i think) and not jffs2
+  - the images are yaffs Aug 19 2010 16:52:33 and not jffs2
+  - software to decode yaffs http://code.google.com/p/yaffs2utils/
   - someone posted a possible password
     0df6126571f873829f9ab23d129d786e in the u-boot, and here and
     there. This amount corresponds to the md5 password allenchen
   
+martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kernel
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+warning: image size (792568)is NOT a multiple of (2048 + 64).
+
+scanning image 'kernel.img'... [done]
+scanning complete, total objects: 1
+
+building fs tree ... [done]
+building complete, total objects: 1
+
+extracting image into 'kernel'
+[=======================================================================================================] 1/1 10 %
+
+modify files attributes... [done]
+
+operation complete,
+files were extracted into 'kernel'.
+martin@acergpu:~/pb-contents/split$ ls kernel
+martin@acergpu:~/pb-contents/split$ ls
+Anleitung Firmareupdate PB360.doc  SWUPDATE.BIN           app.img  kernel.img    rootfs.img
+Release notes 15_3_ENG.doc         Upgrade FW Manual.rtf  kernel   pbfwsplit.pl
+martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kerne^C
+martin@acergpu:~/pb-contents/split$ mkdir app
+martin@acergpu:~/pb-contents/split$ unyaffs2 app.img app
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+
+scanning image 'app.img'... [done]
+scanning complete, total objects: 151
+
+building fs tree ... [done]
+building complete, total objects: 200
+
+extracting image into 'app'
+[=================================================================================================] 200/200 100%
+
+modify files attributes... [done]
+
+operation complete,
+files were extracted into 'app'.
+martin@acergpu:~/pb-contents/split$ ls app
+bin  config  fonts  fsimage.tar.gz  language  lib  logo  pocketbook  share  themes
+martin@acergpu:~/pb-contents/split$ mkdir rootfs
+martin@acergpu:~/pb-contents/split$ unyaffs2 rootfs.img rootfs
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+
+scanning image 'rootfs.img'... [done]
+scanning complete, total objects: 64
+
+building fs tree ... [done]
+building complete, total objects: 376
+
+extracting image into 'rootfs'
+[================================                                                                 ] 126/376  33%
+object 382: [????] 'dev/null' (FAILED).
+...
+object 603: [????] 'usr/dev/urandom' (FAILED).
+[=============================================================                                    ] 240/376  63%
+
+modify files attributes... [*]
+
+operation incomplete,
+files contents may be broken!!!
+martin@acergpu:~/pb-contents/split$ ls rootfs
+bin  dev  ebrmain  etc  lib  linuxrc  mnt  proc  sbin  sys  tmp  usr  var
+
+
   - qemu works in chroot env 
 
 
@@ -660,6 +736,6 @@ martin@acergpu:~/pb-contents/old$ sum ../153/b/bin/busybox
   
   - in the About device dialog i found some interesting information:
 Model: PocketBook 101
-Hardware Type: EB-500
+Hardware Type: EB-500          -> I wonder if the schematics are available as well
 E-ink parameters: A101.81/16
 developed by Western Graphics
