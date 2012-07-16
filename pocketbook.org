@@ -246,20 +246,27 @@ martin@acergpu:/dev/shm$ cp /mnt/{dmesg,proc.tar,sys.tar,cpuinfo,b.tar} /dev/shm
 : apm=
 : noalign
 : uncached
-  - note the console=ttySAC0, apparently there is a serial console and also the filesystem type is given
+
+  - note the console=ttySAC0, apparently there is a serial console and
+    also the filesystem type is given
+
   - and 1649516 (this can't be decompressed)
+
 : 00192b60  68 d0 8d e2 f0 8f bd e8  f8 48 06 00 1f 8b 08 00  |h........H......|
 : 00192b70  34 2e 00 00 54 61 05 00  30 29 00 00 36 61 05 00  |4...Ta..0)..6a..|
 : 00192b80  a4 29 00 00 58 18 00 00  e0 23 00 00 e2 23 00 00  |.)..X....#...#..|
 : 00192b90  17 01 00 00 de 23 00 00  1f 01 00 00 58 21 00 00  |.....#......X!..|
+
   - and 30655424
+
 : 01d3c3a0  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
 : *
 : 01d3c3c0  1f 8b 08 00 33 df 55 4b  00 03 ec 9d 0b 78 13 55  |....3.UK.....x.U|
 : 01d3c3d0  da c7 27 b4 29 6d 6d cb  29 97 72 b1 40 85 72 11  |..'.)mm.).r.@.r.|
 : 01d3c3e0  b9 24 69 9a 22 c2 42 5b  28 08 2d 14 5b 17 44 b0  |.$i.".B[(.-.[.D.|
 : 
-- this is some data
+  - this is some the beginning of the decompressed data in this file
+
 : martin@acergpu:/dev/shm$ hexdump -C 30655424-dat |head
 : 00000000  41 66 72 69 63 61 2f 00  00 00 00 00 00 00 00 00  |Africa/.........|
 : 00000010  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
@@ -273,11 +280,14 @@ martin@acergpu:/dev/shm$ cp /mnt/{dmesg,proc.tar,sys.tar,cpuinfo,b.tar} /dev/shm
 : 00000100  00 75 73 74 61 72 20 20  00 72 6f 6f 74 00 00 00  |.ustar  .root...|
 
   - and 32788544
+
 : 01f45020  ff ff ff ff ff ff ff ff  ff ff ff ff ff ff ff ff  |................|
 : *
 : 01f45040  1f 8b 08 00 39 42 ff 4c  00 03 ec 7d 0b 7c 55 d5  |....9B.L...}.|U.|
 : 01f45050  95 f7 be 8f 3c 08 57 b8  09 a0 11 d1 5c 10 67 32  |....<.W.....\.g2|
+
   - it only contains a tar with some games
+
 : martin@acergpu:/dev/shm$ hexdump -C 30655424-dat ^C
 : martin@acergpu:/dev/shm$ dd if=s.raw bs=1 skip=32788544 > 32788544.gz
 : file 324371392+0 records in
@@ -293,9 +303,8 @@ martin@acergpu:/dev/shm$ cp /mnt/{dmesg,proc.tar,sys.tar,cpuinfo,b.tar} /dev/shm
 : games/sudoku.app
 : tar: Unexpected EOF in archive
 
+  - this is how my vmlinuz files look like on i386
 
-
- - this is how my vmlinuz files look like on i386
 : martin@acergpu:/dev/shm$ hexdump -C /boot/vmlinuz-2.6.32-mk.old |head
 : 00000000  ea 05 00 c0 07 8c c8 8e  d8 8e c0 8e d0 31 e4 fb  |.............1..|
 : 00000010  fc be 2d 00 ac 20 c0 74  09 b4 0e bb 07 00 cd 10  |..-.. .t........|
@@ -740,6 +749,7 @@ struct FWPart
   
   - i redid the extraction as root, to prevent the errors when creating device files and 
   - the following 3 programs have setuid rights:
+
 : martin@acergpu:~/pb-contents/split$ find . -perm -4000 -print |xargs ls -ln
 : -rwsr-sr-x 1  102 102 8685376 Dec  8  2010 ./app/bin/AdobeViewer.app
 : -rwsr-sr-x 1 4000   0    3952 May  5  2010 ./rootfs/bin/mattr
@@ -761,6 +771,7 @@ struct FWPart
 
 * swupdate
   - maybe i can run swupdate in qemu and see how it verifies the binary blob
+
 : martin@acergpu:~/pb-contents/split$ sudo chroot rootfs /bin/qemu-arm /bin/swupdate -u
 : Unsupported ioctl: cmd=0x00a5
 : Unsupported ioctl: cmd=0x0064
@@ -769,14 +780,18 @@ struct FWPart
 : /bin/mount -t vfat /dev/mmcblk0 /mnt/ext2
 : /bin/mount -t vfat /dev/mtdblock6p1 /mnt/ext1
 : /bin/mount -t vfat /dev/mtdblock6 /mnt/ext1
+
   - apparently they used ASN1 to create swupdate:
+
 : martin@acergpu:~/pb-contents/split/rootfs/bin$ strings swupdate |grep ASN
 : ASN1 lib
 : ASN.1 part of OpenSSL 0.9.8g 19 Oct 2007
 : ASN1_OCTET_STRING_NDEF
 : ASN1_FBOOLEAN
 : ASN1_TBOOLEAN
+
   -other strings that seem useful:
+
 : /ebrmain/config/device.cfg
 : /dev/mmcblk0
 : /mnt/ext2
@@ -805,8 +820,9 @@ struct FWPart
 : Firmware version: %s
 : rsa signature not matches
 : wrong md5 checksum
+
   - they use openssl and md5 to verify the image signatures:
-: 
+
 : operation complete,
 : files were extracted into 'kernel'.
 : martin@acergpu:~/pb-contents/split$ ls kernel
@@ -859,6 +875,7 @@ struct FWPart
   
   - i redid the extraction as root, to prevent the errors when creating device files and 
   - the following 3 programs have setuid rights:
+
 : martin@acergpu:~/pb-contents/split$ find . -perm -4000 -print |xargs ls -ln
 : -rwsr-sr-x 1  102 102 8685376 Dec  8  2010 ./app/bin/AdobeViewer.app
 : -rwsr-sr-x 1 4000   0    3952 May  5  2010 ./rootfs/bin/mattr
@@ -880,6 +897,7 @@ struct FWPart
 
 * swupdate
   - maybe i can run swupdate in qemu and see how it verifies the binary blob
+
 : martin@acergpu:~/pb-contents/split$ sudo chroot rootfs /bin/qemu-arm /bin/swupdate -u
 : Unsupported ioctl: cmd=0x00a5
 : Unsupported ioctl: cmd=0x0064
@@ -888,15 +906,19 @@ struct FWPart
 : /bin/mount -t vfat /dev/mmcblk0 /mnt/ext2
 : /bin/mount -t vfat /dev/mtdblock6p1 /mnt/ext1
 : /bin/mount -t vfat /dev/mtdblock6 /mnt/ext1
+
   - maybe they use ASN1 within swupdate. but maybe these are just
     unused remnants of openssl
+
 : martin@acergpu:~/pb-contents/split/rootfs/bin$ strings swupdate |grep ASN
 : ASN1 lib
 : ASN.1 part of OpenSSL 0.9.8g 19 Oct 2007
 : ASN1_OCTET_STRING_NDEF
 : ASN1_FBOOLEAN
 : ASN1_TBOOLEAN
+
   -other strings that seem useful:
+
 : /ebrmain/config/device.cfg
 : /dev/mmcblk0
 : /mnt/ext2
@@ -925,14 +947,18 @@ struct FWPart
 : Firmware version: %s
 : rsa signature not matches
 : wrong md5 checksum
+
   - they use openssl and md5 to verify the image signatures:
+
 : MD5 part of OpenSSL 0.9.8g 19 Oct 2007
 : RSA part of OpenSSL 0.9.8g 19 Oct 2007
+
   - there are at least bitmap, waveforms, ebrmain, zimage, root-fs and
     u-boot image types. i expect them to be indicated with single
     letters in the images partition table
 
   - more useful is the command arm-linux-strings, it prints the positions of the strings in the file
+
 : martin@acergpu:~/pb-contents/split/rootfs/bin$ arm-linux-strings -tx swupdate      
 :      f4 /lib/ld-linux.so.2
 :     6ed __gmon_start__
@@ -957,8 +983,10 @@ struct FWPart
 :     78b socket
 :     792 fflush
 : ...
+
   - and readelf can show external functions. it would be useful to
     have them in the disassembly
+
 : martin@acergpu:~/pb-contents/split/rootfs/bin$ arm-linux-readelf -s swupdate 
 : 
 : Symbol table '.dynsym' contains 66 entries:
@@ -972,9 +1000,29 @@ struct FWPart
 :      6: 00008c28    16 FUNC    GLOBAL DEFAULT  UND getpid@GLIBC_2.0 (2)
 :      7: 00008c38   116 FUNC    GLOBAL DEFAULT  UND write@GLIBC_2.0 (2)
 : ...
+: martin@acergpu:~/pb-contents/split/rootfs/bin$ arm-linux-readelf -r swupdate 
+: 
+: Relocation section '.rel.dyn' at offset 0x9b4 contains 3 entries:
+:  Offset     Info    Type            Sym.Value  Sym. Name
+: 00046ae4  00004015 R_ARM_GLOB_DAT    00000000   __gmon_start__
+: 00046ae8  00002a15 R_ARM_GLOB_DAT    0003e41b   __clz_tab
+: 00046b00  00001914 R_ARM_COPY        00046b00   stderr
+: 
+: Relocation section '.rel.plt' at offset 0x9cc contains 61 entries:
+:  Offset     Info    Type            Sym.Value  Sym. Name
+: 000469f0  00000116 R_ARM_JUMP_SLOT   00008bd8   usleep
+: 000469f4  00000216 R_ARM_JUMP_SLOT   00008be8   mkdir
+: 000469f8  00000316 R_ARM_JUMP_SLOT   00008bf8   ferror
+: 000469fc  00000416 R_ARM_JUMP_SLOT   00008c08   strchr
+: 00046a00  00000516 R_ARM_JUMP_SLOT   00008c18   feof
+: 00046a04  00000616 R_ARM_JUMP_SLOT   00008c28   getpid
+: 00046a08  00000716 R_ARM_JUMP_SLOT   00008c38   write
+: 00046a0c  00000816 R_ARM_JUMP_SLOT   00008c48   poll
+: ...
 
   - I wonder what /usr/etc/swupdate.pk contains, maybe something
     related to ASN1?
+
 #+BEGIN_EXAMPLE
 00000000  00 00 00 00 10 00 00 00  11 00 00 00 00 00 00 00  |................|
 00000010  01 00 00 00 01 00 00 00  01 00 00 00 00 00 00 00  |................|
@@ -1017,6 +1065,7 @@ struct FWPart
  
   - i copy the rootfs folder and change /etc/passwd to not contain any root password
   - create the changed image file:
+
 : martin@acergpu:~/pb-contents/split$ mkyaffs2 rootfs-changed/ rootfs-changed.img
 : mkyaffs2 0.2.9: image building tool for YAFFS2.
 : warning: non-root users.
@@ -1030,10 +1079,7 @@ struct FWPart
 : operation complete,
 : 378 objects in 3533 NAND pages.
 
-
   - qemu works in chroot env 
-
-
 
 : martin@acergpu:~/pb-contents/153$ sudo chroot b /bin/qemu-arm /bin/sh
 : 
@@ -1042,7 +1088,9 @@ struct FWPart
 : Enter 'help' for a list of built-in commands.
 : 
 : # 
+
    - busybox in 153 implements the following functions
+
 :         [, [[, ash, awk, basename, bunzip2, bzcat, cat, chgrp, chmod, chown,
 :         chroot, cksum, clear, cp, cut, date, dd, df, dirname, dmesg, du,
 :         echo, egrep, env, expand, expr, false, fgrep, fold, free, fuser,
@@ -1056,10 +1104,12 @@ struct FWPart
 :         test, time, touch, tr, true, tty, umount, uname, uniq, unzip, uptime,
 :         usleep, vi, watch, watchdog, wc, wget, which, xargs, yes, zcat
   - the old firmware contains an identical busybox binary
+
 : martin@acergpu:~/pb-contents/old$ sum b/bin/busybox 
 : 31225   332
 : martin@acergpu:~/pb-contents/old$ sum ../153/b/bin/busybox 
 : 31225   332
+
   - most notably passwd and login are missing
   - they have su but it is not suid
   - mdev seems to be a nice tool
@@ -1076,10 +1126,12 @@ struct FWPart
   - boot rom: i think the device boots from nand flash
   
   - in the About device dialog i found some interesting information:
+
 : Model: PocketBook 101
 : Hardware Type: EB-500          -> I wonder if the schematics are available as well
 : E-ink parameters: A101.81/16
 : developed by Western Graphics
+
   - cat /proc/devices
 
 : 1 mem
@@ -1105,6 +1157,7 @@ struct FWPart
 : 1 ramdisk
 : 31 mtdblock
 : 254 mmc
+
 * arm instructions
   - thumb vs. arm
   - arm
@@ -1133,6 +1186,7 @@ struct FWPart
        hitting the reset button on your board a lot and w ant to "up
        arrow " to the previous load command you just entered.
 * uiquery.app
+
 #+BEGIN_EXAMPLE
 uiquery - interaction with inkview UI from external programs
 
