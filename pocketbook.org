@@ -588,7 +588,7 @@ wake disabled for irq 46
     not be able to log in without root password
     http://www.the-ebook.org/forum/viewtopic.php?t=18625&postdays=0&postorder=asc&start=20&sid=60fbf00524f95e2a3ce2df2e24bf615d
  
-  - someone found an exploit in netagent (only available in newer devices)x to become root:
+  - someone found an exploit in netagent (only available in newer devices) to become root:
     http://www.mobileread.com/forums/showthread.php?t=130710
 
   - in my system, only AdobeViewer.app is setuid but only as sreader and not root
@@ -623,6 +623,7 @@ struct FWPart
 #+END_EXAMPLE
 
   - have a look at the header of the SW..Bin file again:
+
 : 00000000  50 6f 63 6b 65 74 42 6f  6f 6b 55 70 64 61 74 65  |PocketBookUpdate|
 : 00000010  50 6f 63 6b 65 74 31 30  31 00 00 00 00 00 00 00  |Pocket101.......|
 : 00000020  00 00 00 00 44 33 36 30  2e 31 35 2e 33 00 00 00  |....D360.15.3...|
@@ -632,8 +633,9 @@ struct FWPart
 : 00000060  ee a7 9e 1f 9f fb 37 7a  c9 d4 26 33 f6 05 18 62  |......7z..&3...b|
 : 00000070  3d ad 8e 4d 8f 1e 1b 1e  3f c9 88 8b 1a 26 02 27  |=..M....?....&.'|
 : 00000080  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
-: 
+
  - now look try to find the following fields in there
+
 : struct PocketBookUpdateHeader
 : {
 :   char magic[0x10];    // 0x00 PocketBookUpdate
@@ -652,6 +654,7 @@ struct FWPart
   - the offset must be increased by 0x400 to accommodate header
 
   - check how the c program extracts the file
+
 : martin@acergpu:~/pb-contents/pocketbook_free_swupdate$ ./parseUpdate SWUPDATE.BIN  o
 : Header part: 
 :          0       0x10           Magic:                  PocketBookUpdate
@@ -668,6 +671,7 @@ struct FWPart
 :                 ^--- this is offset+size
 
   - this is what the perl program outputs:
+
 : martin@acergpu:~/pb-contents/split$ perl pbfwsplit.pl SWUPDATE.BIN 
 :         kernel.img:6B: 00000400 0000001024 -> 000C17F8 0000792568
 :         rootfs.img:72: 000D0400 0000852992 -> 004173C0 0004289472
@@ -682,6 +686,7 @@ struct FWPart
 : Image (Not compressed), 792504 bytes, Thu Aug 19 15:52:43 2010, Load
 : Address: 0x30008000, Entry Point: 0x30008000, Header CRC: 0xA55279F9,
 : Data CRC: 0xC1998C2A
+
   - the kernel.img is probably created with the tool mkimage (from
     u-boot distribution, see Introduction to Das U-Boot in Linux
     Journal, Curt Brune, 2004-08-29)
@@ -696,72 +701,74 @@ struct FWPart
   - someone posted a possible password
     0df6126571f873829f9ab23d129d786e in the u-boot, and here and
     there. This amount corresponds to the md5 password allenchen
-  
-: martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kernel
-: unyaffs2 0.2.9: image extracting tool for YAFFS2.
-: warning: non-root users.
-: warning: image size (792568)is NOT a multiple of (2048 + 64).
-: 
-: scanning image 'kernel.img'... [done]
-: scanning complete, total objects: 1
-: 
-: building fs tree ... [done]
-: building complete, total objects: 1
-: 
-: extracting image into 'kernel'
-: [=======================================================================================================] 1/1 10 %
-: 
-: modify files attributes... [done]
-: 
-: operation complete,
-: files were extracted into 'kernel'.
-: martin@acergpu:~/pb-contents/split$ ls kernel
-: martin@acergpu:~/pb-contents/split$ ls
-: Anleitung Firmareupdate PB360.doc  SWUPDATE.BIN           app.img  kernel.img    rootfs.img
-: Release notes 15_3_ENG.doc         Upgrade FW Manual.rtf  kernel   pbfwsplit.pl
-: martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kerne^C
-: martin@acergpu:~/pb-contents/split$ unyaffs2 app.img app
-: unyaffs2 0.2.9: image extracting tool for YAFFS2.
-: warning: non-root users.
-: 
-: scanning image 'app.img'... [done]
-: scanning complete, total objects: 151
-: 
-: building fs tree ... [done]
-: building complete, total objects: 200
-: 
-: extracting image into 'app'
-: [=================================================================================================] 200/200 100%
-: 
-: modify files attributes... [done]
-: 
-: operation complete,
-: files were extracted into 'app'.
-: martin@acergpu:~/pb-contents/split$ ls app
-: bin  config  fonts  fsimage.tar.gz  language  lib  logo  pocketbook  share  themes
-: martin@acergpu:~/pb-contents/split$ unyaffs2 rootfs.img rootfs
-: unyaffs2 0.2.9: image extracting tool for YAFFS2.
-: warning: non-root users.
-: 
-: scanning image 'rootfs.img'... [done]
-: scanning complete, total objects: 64
-: 
-: building fs tree ... [done]
-: building complete, total objects: 376
-: 
-: extracting image into 'rootfs'
-: [================================                                                                 ] 126/376  33%
-: object 382: [????] 'dev/null' (FAILED).
-: ...
-: object 603: [????] 'usr/dev/urandom' (FAILED).
-: [=============================================================                                    ] 240/376  63%
-: 
-: modify files attributes... [*]
-: 
-: operation incomplete,
-: files contents may be broken!!!
-: martin@acergpu:~/pb-contents/split$ ls rootfs
-: bin  dev  ebrmain  etc  lib  linuxrc  mnt  proc  sbin  sys  tmp  usr  var
+
+#+BEGIN_EXAMPLE  
+martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kernel
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+warning: image size (792568)is NOT a multiple of (2048 + 64).
+
+scanning image 'kernel.img'... [done]
+scanning complete, total objects: 1
+
+building fs tree ... [done]
+building complete, total objects: 1
+
+extracting image into 'kernel'
+[=======================================================================================================] 1/1 10 %
+
+modify files attributes... [done]
+
+operation complete,
+files were extracted into 'kernel'.
+martin@acergpu:~/pb-contents/split$ ls kernel
+martin@acergpu:~/pb-contents/split$ ls
+Anleitung Firmareupdate PB360.doc  SWUPDATE.BIN           app.img  kernel.img    rootfs.img
+Release notes 15_3_ENG.doc         Upgrade FW Manual.rtf  kernel   pbfwsplit.pl
+martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kerne^C
+martin@acergpu:~/pb-contents/split$ unyaffs2 app.img app
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+
+scanning image 'app.img'... [done]
+scanning complete, total objects: 151
+
+building fs tree ... [done]
+building complete, total objects: 200
+
+extracting image into 'app'
+[=================================================================================================] 200/200 100%
+
+modify files attributes... [done]
+
+operation complete,
+files were extracted into 'app'.
+martin@acergpu:~/pb-contents/split$ ls app
+bin  config  fonts  fsimage.tar.gz  language  lib  logo  pocketbook  share  themes
+martin@acergpu:~/pb-contents/split$ unyaffs2 rootfs.img rootfs
+unyaffs2 0.2.9: image extracting tool for YAFFS2.
+warning: non-root users.
+
+scanning image 'rootfs.img'... [done]
+scanning complete, total objects: 64
+
+building fs tree ... [done]
+building complete, total objects: 376
+
+extracting image into 'rootfs'
+[================================                                                                 ] 126/376  33%
+object 382: [????] 'dev/null' (FAILED).
+...
+object 603: [????] 'usr/dev/urandom' (FAILED).
+[=============================================================                                    ] 240/376  63%
+
+modify files attributes... [*]
+
+operation incomplete,
+files contents may be broken!!!
+martin@acergpu:~/pb-contents/split$ ls rootfs
+bin  dev  ebrmain  etc  lib  linuxrc  mnt  proc  sbin  sys  tmp  usr  var
+#+END_EXAMPLE
   
   - i redid the extraction as root, to prevent the errors when creating device files and 
   - the following 3 programs have setuid rights:
@@ -1215,3 +1222,70 @@ uiquery - interaction with inkview UI from external programs
   check status:  uiquery -s
   dismiss:       uiquery -x
 #+END_EXAMPLE
+
+* create new image
+- I used this program to put together a new image with a changed
+  rootfs. But the update program complains, that the image is
+  corrupted. It says "Update image is corrupted".
+- This string is at offset #x3328c in the binary.
+
+#+BEGIN_SRC lisp
+(defparameter *fw* "SWUPDATE.BIN")
+(defun get-head ()
+  (let ((a (make-array #x400 :element-type '(unsigned-byte 8))))
+    (with-open-file (s *fw* :element-type '(unsigned-byte 8))
+      (read-sequence a s))
+    a))
+
+(defun get-rootfs ()
+  (with-open-file (s "rootfs-changed.img" :element-type '(unsigned-byte 8))
+    (let ((a (make-array (file-length s) :element-type '(unsigned-byte 8))))
+      (read-sequence a s)  
+      a)))
+
+(length (get-rootfs))
+
+(defun construct-image ()
+ (let ((h (get-head))
+       (r (get-rootfs)))
+   ;; delete old partition table
+   (loop for i from #x100 below #x400 do
+	(setf (aref h i) 0))
+   (progn ;; write rootfs into partition table
+     ;; indicator 'r' as first byte
+     (setf (aref h #x100) (char-code #\r))
+     ;; last four bytes contain length of image as le integer
+     (let ((l (length r)))
+       (loop for i below 4 do
+	    (setf (aref h (+ #x100 12 i)) 
+		  (ldb (byte 8 (* 8 (- 3 i))) l)))))
+   (let ((res (make-array (+ (length r) (length h)) :element-type '(unsigned-byte 8))))
+     (loop for e across h and i from 0 do (setf (aref res i) e))
+     (loop for e across r and i from (length h) do (setf (aref res i) e))
+     res)))
+
+
+(with-open-file (s "out.fw" :direction :output
+		   :element-type '(unsigned-byte 8)
+		   :if-does-not-exist :create
+		   :if-exists :supersede)
+  (write-sequence (construct-image) s))
+#+END_SRC
+
+
+- make 10MB vfat
+
+: sudo mkfs.vfat -C  o.vfat 10000
+: sudo mount -o loop o.vfat  /mnt/
+: sudo cp -r out.fw /mnt/SWUPDATE.BIN
+sudo umount /mnt
+sudo cp o.vfat rootfs/dev/mmcblk0p1
+
+- above didn't just work
+- also doesn't work:
+ - copying SW.. into /mnt/ext1 
+ - copy SW.. on vfat formatted usb stick and make link to /dev/mmc..
+ - replace mount and sh with x86 versions
+ - replace mount and sh with x86 version of true
+ - replace execve (which is used to call mount) with a function that
+   always returns 0 (success) using LD_PRELOAD
