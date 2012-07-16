@@ -342,10 +342,22 @@ martin@acergpu:/dev/shm$ cp /mnt/{dmesg,proc.tar,sys.tar,cpuinfo,b.tar} /dev/shm
 
 
   - the data looks a bit strange, with all these quotes. maybe this is a jtag port?
-
+  - here is a longer dump, i wonder what the USB information means --
+    can I maybe attach a serial console or a keyboard with USB and no
+    soldering?
 #+BEGIN_EXAMPLE
 martin@acergpu:/dev/shm/Logic 1.1.15 (64-bit)$ cat bla2.txt |cut -d "," -f 2|sed ':a;N;$!ba;s/\n//g'|tr "\'" '"'|xargs echo -e
-Value2550000000108250319225501t2031000nrU-Boot 1.1.4 (Aug 24 2009 - 22:37:50)nrU-Boot code: 33F80000 -> 00000000  BSS: -> 33FA0AACnrSDRAM: 64 MBnrNAND device ID: [0xdcec] [Samsung K9F4G08U0A]nrNAND Total Blocks=4096 <5>nrnand_read_ecc: Attempt read beyond end of device 30000 10000 0nr*** Warning - bad CRC or NAND using default environmentnrStart Logo 0x260000nrUSB device init ....chip_id:[0x00158230]..done.nrUSB information[ISPs USBD]: EP0: control EP1: in EP3: out
+Value2550000000108250319225501t2031000
+U-Boot 1.1.4 (Aug 24 2009 - 22:37:50)
+U-Boot code: 33F80000 -> 00000000  BSS: -> 33FA0AAC
+SDRAM: 64 MB
+NAND device ID: [0xdcec] [Samsung K9F4G08U0A]
+NAND Total Blocks=4096 <5>
+nand_read_ecc: Attempt read beyond end of device 30000 10000 0
+*** Warning - bad CRC or NAND using default environment
+Start Logo 0x260000
+USB device init ....chip_id:[0x00158230]..done.
+USB information[ISPs USBD]: EP0: control EP1: in EP3: out
 Hit any key to stop autoboot:  1 888 0 
 From 0x00080000 to 0x00240000
 Target read size = 0x001c0000
@@ -499,7 +511,7 @@ wake disabled for irq 46
   - the pl2303 might not be supported much longer:
 
 
-:  Due to EOL (End-of-Life) policy, please note that PL-2303HX (Chip Rev
+: Due to EOL (End-of-Life) policy, please note that PL-2303HX (Chip Rev
 : A) and PL-2303X (Chip Rev A) will not have driver support for the
 : coming Windows 8 operating system as it is not a supported OS
 : mentioned in the chip datasheet. So it is advisable to switch to the
@@ -563,8 +575,7 @@ wake disabled for irq 46
 :          rootfs.img:72: 000D0400 0000852992 -> 004173C0 0004289472
 :             app.img:65: 004F0400 0005178368 -> 01E74400 0031933440
 
-    - here is documentation on the bin file:
-https://github.com/Vanuan/pocketbook_free_swupdate/wiki/File-structure
+    - here is documentation on the bin file: https://github.com/Vanuan/pocketbook_free_swupdate/wiki/File-structure
 
 #+BEGIN_EXAMPLE
 // from the perl program pbfwsplit.pl and c++ program
@@ -641,12 +652,21 @@ struct FWPart
 : 26335 31185 app.img      0x66df
 : 16850   774 kernel.img   0x41d2
 : 61720  4189 rootfs.img   0xf118
-
+: martin@acergpu:~/pb-contents/split$ file kernel.img 
+: kernel.img: u-boot legacy uImage, Linux-2.6.18.2, Linux/ARM, OS Kernel
+: Image (Not compressed), 792504 bytes, Thu Aug 19 15:52:43 2010, Load
+: Address: 0x30008000, Entry Point: 0x30008000, Header CRC: 0xA55279F9,
+: Data CRC: 0xC1998C2A
+  - the kernel.img is probably created with the tool mkimage (from
+    u-boot distribution, see Introduction to Das U-Boot in Linux
+    Journal, Curt Brune, 2004-08-29)
   - apparently, i can't just boot these things in qemu
     martin@acergpu:~/pb-contents/split$ qemu-system-arm -kernel kernel.img -mtdblock rootfs.img 
     VNC server running on `127.0.0.1:5900'
     qemu: fatal: Trying to execute code outside RAM or ROM at 0x30008000
-  - the images are yaffs Aug 19 2010 16:52:33 and not jffs2
+  - the images are yaffs Aug 19 2010 16:52:33 (this is probably not
+    the yaffs version, but the time, when the image was created -- one
+    hour later than the kernel) and not jffs2
   - software to decode yaffs http://code.google.com/p/yaffs2utils/
   - someone posted a possible password
     0df6126571f873829f9ab23d129d786e in the u-boot, and here and
@@ -739,6 +759,7 @@ struct FWPart
 
   - i just stumbled on lida, a x86 disassembler
 
+* swupdate
   - maybe i can run swupdate in qemu and see how it verifies the binary blob
 : martin@acergpu:~/pb-contents/split$ sudo chroot rootfs /bin/qemu-arm /bin/swupdate -u
 : Unsupported ioctl: cmd=0x00a5
@@ -748,7 +769,252 @@ struct FWPart
 : /bin/mount -t vfat /dev/mmcblk0 /mnt/ext2
 : /bin/mount -t vfat /dev/mtdblock6p1 /mnt/ext1
 : /bin/mount -t vfat /dev/mtdblock6 /mnt/ext1
+  - apparently they used ASN1 to create swupdate:
+: martin@acergpu:~/pb-contents/split/rootfs/bin$ strings swupdate |grep ASN
+: ASN1 lib
+: ASN.1 part of OpenSSL 0.9.8g 19 Oct 2007
+: ASN1_OCTET_STRING_NDEF
+: ASN1_FBOOLEAN
+: ASN1_TBOOLEAN
+  -other strings that seem useful:
+: /ebrmain/config/device.cfg
+: /dev/mmcblk0
+: /mnt/ext2
+: /mnt/ext2/SWUPDATE.BIN
+: /mnt/ext1/SWUPDATE.BIN
+: /usr/etc/swupdate.pk
+: /tmp/update.exec
+: /tmp/update.kernel
+: Cannot open key file %s
+: Key entry %i does not exist
+: rsa key loaded (entry %i)
+: error loading rsa key file
+: Cannot verify image signature
+: Updating bitmap...
+: Updating waveforms...
+: Updating ebrmain...
+: Updating zimage...
+: Updating root fs...
+: Testing spi write...
+: Updating u-boot...
+: unknown partition type: %s
+: Unknown image type: %s
+: Resource w not applicable to this controller
+: md5 sum not match
+: Press center key to start update
+: Firmware version: %s
+: rsa signature not matches
+: wrong md5 checksum
+  - they use openssl and md5 to verify the image signatures:
+: 
+: operation complete,
+: files were extracted into 'kernel'.
+: martin@acergpu:~/pb-contents/split$ ls kernel
+: martin@acergpu:~/pb-contents/split$ ls
+: Anleitung Firmareupdate PB360.doc  SWUPDATE.BIN           app.img  kernel.img    rootfs.img
+: Release notes 15_3_ENG.doc         Upgrade FW Manual.rtf  kernel   pbfwsplit.pl
+: martin@acergpu:~/pb-contents/split$ unyaffs2 kernel.img  kerne^C
+: martin@acergpu:~/pb-contents/split$ unyaffs2 app.img app
+: unyaffs2 0.2.9: image extracting tool for YAFFS2.
+: warning: non-root users.
+: 
+: scanning image 'app.img'... [done]
+: scanning complete, total objects: 151
+: 
+: building fs tree ... [done]
+: building complete, total objects: 200
+: 
+: extracting image into 'app'
+: [=================================================================================================] 200/200 100%
+: 
+: modify files attributes... [done]
+: 
+: operation complete,
+: files were extracted into 'app'.
+: martin@acergpu:~/pb-contents/split$ ls app
+: bin  config  fonts  fsimage.tar.gz  language  lib  logo  pocketbook  share  themes
+: martin@acergpu:~/pb-contents/split$ unyaffs2 rootfs.img rootfs
+: unyaffs2 0.2.9: image extracting tool for YAFFS2.
+: warning: non-root users.
+: 
+: scanning image 'rootfs.img'... [done]
+: scanning complete, total objects: 64
+: 
+: building fs tree ... [done]
+: building complete, total objects: 376
+: 
+: extracting image into 'rootfs'
+: [================================                                                                 ] 126/376  33%
+: object 382: [????] 'dev/null' (FAILED).
+: ...
+: object 603: [????] 'usr/dev/urandom' (FAILED).
+: [=============================================================                                    ] 240/376  63%
+: 
+: modify files attributes... [*]
+: 
+: operation incomplete,
+: files contents may be broken!!!
+: martin@acergpu:~/pb-contents/split$ ls rootfs
+: bin  dev  ebrmain  etc  lib  linuxrc  mnt  proc  sbin  sys  tmp  usr  var
+  
+  - i redid the extraction as root, to prevent the errors when creating device files and 
+  - the following 3 programs have setuid rights:
+: martin@acergpu:~/pb-contents/split$ find . -perm -4000 -print |xargs ls -ln
+: -rwsr-sr-x 1  102 102 8685376 Dec  8  2010 ./app/bin/AdobeViewer.app
+: -rwsr-sr-x 1 4000   0    3952 May  5  2010 ./rootfs/bin/mattr
+: -rwsr-sr-x 1 4000   0    3720 May  5  2010 ./rootfs/bin/suspend
 
+  - none of them are owned by root
+
+: martin@acergpu:~/pb-contents/split$ cat rootfs/etc/passwd 
+: root:*:0:0:root:/:/bin/sh
+: ...
+: sreader:*:102:102:sreader:/:
+: 
+: martin@acergpu:~/pb-contents/split$ cat rootfs/etc/group  
+: root:*:0:
+: ...
+: sreader:*:102:
+
+  - i just stumbled on lida, a x86 disassembler
+
+* swupdate
+  - maybe i can run swupdate in qemu and see how it verifies the binary blob
+: martin@acergpu:~/pb-contents/split$ sudo chroot rootfs /bin/qemu-arm /bin/swupdate -u
+: Unsupported ioctl: cmd=0x00a5
+: Unsupported ioctl: cmd=0x0064
+: Unsupported ioctl: cmd=0x0064
+: /bin/mount -t vfat /dev/mmcblk0p1 /mnt/ext2
+: /bin/mount -t vfat /dev/mmcblk0 /mnt/ext2
+: /bin/mount -t vfat /dev/mtdblock6p1 /mnt/ext1
+: /bin/mount -t vfat /dev/mtdblock6 /mnt/ext1
+  - maybe they use ASN1 within swupdate. but maybe these are just
+    unused remnants of openssl
+: martin@acergpu:~/pb-contents/split/rootfs/bin$ strings swupdate |grep ASN
+: ASN1 lib
+: ASN.1 part of OpenSSL 0.9.8g 19 Oct 2007
+: ASN1_OCTET_STRING_NDEF
+: ASN1_FBOOLEAN
+: ASN1_TBOOLEAN
+  -other strings that seem useful:
+: /ebrmain/config/device.cfg
+: /dev/mmcblk0
+: /mnt/ext2
+: /mnt/ext2/SWUPDATE.BIN
+: /mnt/ext1/SWUPDATE.BIN
+: /usr/etc/swupdate.pk
+: /tmp/update.exec
+: /tmp/update.kernel
+: Cannot open key file %s
+: Key entry %i does not exist
+: rsa key loaded (entry %i)
+: error loading rsa key file
+: Cannot verify image signature
+: Updating bitmap...
+: Updating waveforms...
+: Updating ebrmain...
+: Updating zimage...
+: Updating root fs...
+: Testing spi write...
+: Updating u-boot...
+: unknown partition type: %s
+: Unknown image type: %s
+: Resource w not applicable to this controller
+: md5 sum not match
+: Press center key to start update
+: Firmware version: %s
+: rsa signature not matches
+: wrong md5 checksum
+  - they use openssl and md5 to verify the image signatures:
+: MD5 part of OpenSSL 0.9.8g 19 Oct 2007
+: RSA part of OpenSSL 0.9.8g 19 Oct 2007
+  - there are at least bitmap, waveforms, ebrmain, zimage, root-fs and
+    u-boot image types. i expect them to be indicated with single
+    letters in the images partition table
+
+  - more useful is the command arm-linux-strings, it prints the positions of the strings in the file
+: martin@acergpu:~/pb-contents/split/rootfs/bin$ arm-linux-strings -tx swupdate      
+:      f4 /lib/ld-linux.so.2
+:     6ed __gmon_start__
+:     6fc __clz_tab
+:     706 libc.so.6
+:     710 strcpy
+:     717 ioctl
+:     71d connect
+:     725 strerror
+:     72e snprintf
+:     737 getenv
+:     73e __strtol_internal
+:     750 usleep
+:     757 getpid
+:     75e qsort
+:     764 fgets
+:     76a memcpy
+:     771 getuid
+:     778 system
+:     77f feof
+:     784 malloc
+:     78b socket
+:     792 fflush
+: ...
+  - and readelf can show external functions. it would be useful to
+    have them in the disassembly
+: martin@acergpu:~/pb-contents/split/rootfs/bin$ arm-linux-readelf -s swupdate 
+: 
+: Symbol table '.dynsym' contains 66 entries:
+:    Num:    Value  Size Type    Bind   Vis      Ndx Name
+:      0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+:      1: 00008bd8    80 FUNC    GLOBAL DEFAULT  UND usleep@GLIBC_2.0 (2)
+:      2: 00008be8    16 FUNC    GLOBAL DEFAULT  UND mkdir@GLIBC_2.0 (2)
+:      3: 00008bf8    68 FUNC    GLOBAL DEFAULT  UND ferror@GLIBC_2.0 (2)
+:      4: 00008c08   252 FUNC    GLOBAL DEFAULT  UND strchr@GLIBC_2.0 (2)
+:      5: 00008c18    68 FUNC    GLOBAL DEFAULT  UND feof@GLIBC_2.0 (2)
+:      6: 00008c28    16 FUNC    GLOBAL DEFAULT  UND getpid@GLIBC_2.0 (2)
+:      7: 00008c38   116 FUNC    GLOBAL DEFAULT  UND write@GLIBC_2.0 (2)
+: ...
+
+  - I wonder what /usr/etc/swupdate.pk contains, maybe something
+    related to ASN1?
+#+BEGIN_EXAMPLE
+00000000  00 00 00 00 10 00 00 00  11 00 00 00 00 00 00 00  |................|
+00000010  01 00 00 00 01 00 00 00  01 00 00 00 00 00 00 00  |................|
+00000020  01 00 00 00 00 00 00 00  1b 6f 78 ff ce 17 3f 6c  |.........ox...?l|
+00000030  75 d9 6b c9 34 c4 ed c1  d4 16 04 d3 ec 97 03 b3  |u.k.4...........|
+00000040  6b 0e a3 39 3c 00 11 cb  16 a3 41 76 9a 58 1f e5  |k..9<.....Av.X..|
+00000050  2a 55 cc a0 54 b0 b4 60  d3 2c e1 e7 4d de 61 d1  |*U..T..`.,..M.a.|
+00000060  5a b4 c1 5c 0a 1e ae be  00 00 00 00 00 00 00 00  |Z..\............|
+00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+000000a0  00 00 00 00 00 00 00 00  01 00 01 00 00 00 00 00  |................|
+000000b0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000120  00 00 00 00 00 00 00 00  00 00 00 00 10 00 00 00  |................|
+00000130  11 00 00 00 00 00 00 00  01 00 00 00 01 00 00 00  |................|
+00000140  01 00 00 00 00 00 00 00  01 00 00 00 00 00 00 00  |................|
+00000150  f7 7e 31 81 65 e4 a3 60  b1 e4 93 3a 18 f1 e5 5d  |.~1.e..`...:...]|
+00000160  9f 07 7e 62 45 02 98 2b  87 dd 59 18 40 1e 54 c3  |..~bE..+..Y.@.T.|
+00000170  c7 ca 09 40 45 df c7 5a  9a 92 f8 93 a2 94 8b 31  |...@E..Z.......1|
+00000180  ec 57 98 b1 a1 b9 6d 8b  31 d4 68 8b 72 95 28 ec  |.W....m.1.h.r.(.|
+00000190  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+000001d0  01 00 01 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+000001e0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000250  00 00 00 00 10 00 00 00  11 00 00 00 00 00 00 00  |................|
+00000260  01 00 00 00 01 00 00 00  01 00 00 00 00 00 00 00  |................|
+00000270  01 00 00 00 00 00 00 00  89 a4 5e e9 6b 0e 7c 26  |..........^.k.|&|
+00000280  1e 8a ad e6 da 15 ca 37  75 97 49 84 f8 72 a5 c6  |.......7u.I..r..|
+00000290  d0 dc b4 99 3a 3c 5a 37  38 5c 93 a8 38 83 e4 76  |....:<Z78\..8..v|
+000002a0  78 b2 f9 1a 26 e1 15 96  52 d0 b3 58 eb b7 b4 0a  |x...&...R..X....|
+000002b0  99 43 07 cc 9f d0 03 ca  00 00 00 00 00 00 00 00  |.C..............|
+000002c0  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+000002f0  00 00 00 00 00 00 00 00  01 00 01 00 00 00 00 00  |................|
+00000300  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+*
+00000370
+#+END_EXAMPLE
+ 
   - i copy the rootfs folder and change /etc/passwd to not contain any root password
   - create the changed image file:
 : martin@acergpu:~/pb-contents/split$ mkyaffs2 rootfs-changed/ rootfs-changed.img
@@ -814,8 +1080,68 @@ struct FWPart
 : Hardware Type: EB-500          -> I wonder if the schematics are available as well
 : E-ink parameters: A101.81/16
 : developed by Western Graphics
+  - cat /proc/devices
 
+: 1 mem
+: 2 pty
+: 3 ttyp
+: 4 /dev/vc/0
+: 4 tty
+: 5 /dev/tty
+: 5 /dev/console
+: 5 /dev/ptmx
+: 7 vcs
+: 10 misc
+: 13 input
+: 14 sound
+: 29 fb
+: 89 i2c
+: 90 mtd
+: 126 ptm
+: 136 pts
+: 204 s3c2410_serial
+: 254 rtc
+: Block devices
+: 1 ramdisk
+: 31 mtdblock
+: 254 mmc
 * arm instructions
   - thumb vs. arm
   - arm
     - all instructions are 4 bytes long
+
+* u-boot 
+ - advice in linux journal:
+   - You can use your favorite serial communications program to
+     connect to UBoot. I prefer to use Kermit and a tiny Kermit script
+     from w ithin an emacs shell buffer. I put the follow ing Kermit
+     script into a file called "serialterm" and make the file
+     executable:
+
+: #!/usr/bin/kermit
+: echo c onnecting /dev/ttyS0 .....
+: set line /dev/ttyS0
+: set FLOW AUTO
+: set speed 19200
+: set serial 8n1
+: SET CARRIERWATCH OFF
+: connect 
+
+     - I like running serialterm from w ithin an emacs shell because
+       emacs keeps track of my command history, w hich the UBoot shell
+       does not support. Trust me, w hile developing you w ill be
+       hitting the reset button on your board a lot and w ant to "up
+       arrow " to the previous load command you just entered.
+* uiquery.app
+#+BEGIN_EXAMPLE
+uiquery - interaction with inkview UI from external programs
+
+  Message:       uiquery -m <icon> <title> <text> <timeout>
+  Dialog:        uiquery -d <icon> <title> <text> <button1> [button2]
+  Text entry:    uiquery -t <title> <text> <maxlen> [flags]
+  Progressbar:   uiquery -p <icon> <title> <text> <percent>
+   update:       uiquery -u <percent>
+  Event:         uiquery -e <type> <par1> <par2>
+  check status:  uiquery -s
+  dismiss:       uiquery -x
+#+END_EXAMPLE
